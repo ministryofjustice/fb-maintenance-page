@@ -1,0 +1,89 @@
+#!/bin/bash
+set -e -u -o pipefail
+
+source "$(dirname "$0")/set_k8s_context"
+
+get_images() {
+  kubectl get pods -n "$1" -o jsonpath="{..image}" | tr -s '[[:space:]]' '\n' | sort | uniq
+}
+
+echo "*******************************************************************"
+## Platform environment: test or live
+#
+platform_environment=$PLATFORM_ENV
+
+## Deployment environment: dev (draft), production (published)
+#
+deployment_environment=${DEPLOYMENT_ENV-}
+
+environment_full_name="${platform_environment}-${deployment_environment}"
+echo "environment_full_name is ${environment_full_name}"
+echo "*******************************************************************"
+echo
+
+k8s_environment_name=$(echo ${environment_full_name} | tr '-' '_' | tr [a-z] [A-Z]})
+k8s_token_env_var_name="EKS_TOKEN_${k8s_environment_name}"
+k8s_token=$(eval "echo \${$k8s_token_env_var_name}" | base64 -d)
+
+branch_name=$CIRCLE_BRANCH
+echo "*******************************************************************"
+echo "branch name is ${branch_name}"
+echo "*******************************************************************"
+echo
+
+echo "*******************************************************************"
+application_name=$APPLICATION_NAME
+echo "application_name is ${application_name}"
+echo "*******************************************************************"
+echo
+
+echo "*******************************************************************"
+namespace=$K8S_NAMESPACE
+echo "namespace is ${namespace}"
+echo "*******************************************************************"
+echo
+
+credential_name="circleci_$(echo ${environment_full_name} | tr '-' '_')"
+
+################################################################
+## Begin setting kubernetes context
+################################################################
+
+set_context "${credential_name}" "${namespace}" ${k8s_token} "${EKS_CLUSTER_CERT}" "${EKS_CLUSTER_NAME}"
+
+echo "*******************************************************************"
+echo "apply kubernetes changes to ${platform_environment} ${deployment_environment}"
+echo "*******************************************************************"
+echo
+echo "*******************************************************************"
+
+################################################################
+# Begin applying configuration
+################################################################
+
+echo "*******************************************************************"
+echo "Applying configuration"
+kubectl apply -f ./kubectl_deploy -n "${namespace}"
+echo "*******************************************************************"
+echo
+
+################################################################
+# Begin rollout and restart
+################################################################
+
+echo "*******************************************************************"
+echo "Rollout and restart fb-maintenance-page"
+kubectl -n ${namespace} rollout restart deployment fb-maintenance-page
+echo "*******************************************************************"
+echo
+
+echo "*******************************************************************"
+echo "Checking rollout status for fb-maintenance-page"
+kubectl -n ${namespace} rollout status deployment fb-maintenance-page
+echo "*******************************************************************"
+echo
+
+echo "*******************************************************************"
+echo "Rollout and restart completed"
+echo "*******************************************************************"
+echo

@@ -1,0 +1,40 @@
+#!/bin/bash
+set -e -u -o pipefail
+
+# $1 user or account
+# $2 namespace
+# $3 token related to the namespace
+# $4 cluster cert
+# $5 cluster name
+set_context() {
+  k8s_cluster_cert=$4
+  k8s_cluster_name=$5
+
+  echo "*******************************************************************"
+  echo "Setting K8S context for ${1} user in ${2} namespace"
+  echo -n ${k8s_cluster_cert} | base64 -d > ./ca.crt
+
+  server="https://${k8s_cluster_name}"
+
+  kubectl config set-cluster ${k8s_cluster_name} --certificate-authority=./ca.crt --server=${server}
+  echo "*******************************************************************"
+  echo
+
+  echo "*******************************************************************"
+  echo "kubectl configure credentials"
+  kubectl config set-credentials ${1} --token=${3}
+  echo "*******************************************************************"
+  echo
+
+  echo "*******************************************************************"
+  echo "kubectl configure context"
+  kubectl config set-context ${1} --cluster=${k8s_cluster_name} --user=${1} --namespace=${2}
+  echo "*******************************************************************"
+  echo
+
+  echo "*******************************************************************"
+  echo "kubectl use circleci context"
+  kubectl config use-context ${1}
+  echo "*******************************************************************"
+  echo
+}

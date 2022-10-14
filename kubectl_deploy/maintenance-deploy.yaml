@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: maintenance-page
+  name: fb-maintenance-page
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
-      app:  maintenance-page
+      app:  fb-maintenance-page
   template:
     metadata:
       labels:
-        app: maintenance-page
+        app: fb-maintenance-page
     spec:
       containers:
-      - name: maintenance-page
-        image: 754256621582.dkr.ecr.eu-west-2.amazonaws.com/cloud-platform/maintenance:0.2.0 
+      - name: fb-maintenance-page
+        image: "754256621582.dkr.ecr.eu-west-2.amazonaws.com/formbuilder/fb-maintenance-page:latest"
         ports:
         - containerPort: 8080
