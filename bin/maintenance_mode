@@ -1,0 +1,113 @@
+#!/bin/bash
+set -e -o pipefail
+
+action=$1
+namespace=$2
+hostname_postfix=$3
+
+if [[ ${namespace} != *formbuilder-services* ]]; then
+  echo '*************************************************'
+  echo 'Namespace must be one of:'
+  echo
+  echo '- formbuilder-services-test-dev'
+  echo
+  echo '- formbuilder-services-test-production'
+  echo
+  echo '- formbuilder-services-live-dev'
+  echo
+  echo '- formbuilder-services-live-production'
+  echo '*************************************************'
+  exit 1
+fi
+
+if [[ ! ${action} =~ (enable|disable) ]]; then
+  echo '*************************************************'
+  echo 'Action must be either:'
+  echo
+  echo '- enable'
+  echo
+  echo '- disable'
+  echo '*************************************************'
+  echo
+  exit 1
+fi
+
+if [[ -z "${hostname_prostfix}" ]]; then
+  echo '*************************************************'
+  echo 'Hostname Postfix must be provided. Check the README'
+  echo '*************************************************'
+  echo
+  exit 1
+fi
+
+echo '*************************************************'
+echo "Action: ${action}"
+echo
+echo "Namespace: ${namespace}"
+echo
+echo "Hostname postfix: ${hostname_postfix}"
+echo '*************************************************'
+echo
+
+ingresses=$(kubectl get ingresses -n "${namespace}")
+
+for line in ${ingresses}; do
+  read -ra parts <<< "${line}"
+
+  for part in "${parts[@]}"; do
+    if [[ $part == *-ingress* ]]; then
+      echo '*************************************************'
+      ingress="${part}"
+      echo "Ingress is ${ingress}"
+      echo
+
+      service_slug="${ingress/-ingress/}"
+      echo "Service slug is ${service_slug}"
+      echo
+
+      hostname="${service_slug}.${hostname_postfix}"
+      echo "Hostname is ${hostname}"
+      echo
+
+      if [[ ${action} == 'enable' ]]; then
+        service_name=fb-maintenance-page-svc
+      else
+        service_name="${service_slug}"
+      fi
+      echo "Serice name is ${service_name}"
+      echo
+
+      if [[ ${action} == 'enable' ]]; then
+        container_port=80
+      else
+        container_port=3000
+      fi
+      echo "Container port is ${container_port}"
+      echo
+
+      namespace_directory="./tmp/${namespace}"
+      if [ ! -d "${namespace_directory}" ]; then
+        mkdir "${namespace_directory}"
+      fi
+
+      filepath="${namespace_directory}/${ingress}.yaml"
+      echo "Coyping template to ${filepath}"
+      cp "./templates/ingress.yaml" "${filepath}"
+      echo
+
+      sed -i '' "s/replace_ingress_name/${ingress}/g" "${filepath}"
+      sed -i '' "s/replace_service_slug/${service_slug}/g" "${filepath}"
+      sed -i '' "s/replace_namespace/${namespace}/g" "${filepath}"
+      sed -i '' "s/replace_hostname/${hostname}/g" "${filepath}"
+      sed -i '' "s/replace_service_name/${service_name}/g" "${filepath}"
+      sed -i '' "s/replace_container_port/${container_port}/g" "${filepath}"
+
+      echo "Applying new ingress ${filepath} in ${namespace}"
+      kubectl apply -f "${filepath}" -n "${namespace}"
+
+      echo '*************************************************'
+      echo
+    fi
+  done
+done
+
