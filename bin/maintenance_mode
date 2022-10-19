@@ -32,7 +32,7 @@ if [[ ! ${action} =~ (enable|disable) ]]; then
   exit 1
 fi
 
-if [[ -z "${hostname_prostfix}" ]]; then
+if [[ -z "${hostname_postfix}" ]]; then
   echo '*************************************************'
   echo 'Hostname Postfix must be provided. Check the README'
   echo '*************************************************'
@@ -74,7 +74,7 @@ for line in ${ingresses}; do
       else
         service_name="${service_slug}"
       fi
-      echo "Serice name is ${service_name}"
+      echo "Service name is ${service_name}"
       echo
 
       if [[ ${action} == 'enable' ]]; then
@@ -91,7 +91,7 @@ for line in ${ingresses}; do
       fi
 
       filepath="${namespace_directory}/${ingress}.yaml"
-      echo "Coyping template to ${filepath}"
+      echo "Copying template to ${filepath}"
       cp "./templates/ingress.yaml" "${filepath}"
       echo
 

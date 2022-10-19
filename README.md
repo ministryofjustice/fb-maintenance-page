@@ -18,7 +18,7 @@ This can either be done by redeploying the ingress or doing an in-place edit of 
 
 ## Custom HTML
 
-The HTML provided by default is a basic MoJ Forms braned page. Customise it how you see fit. Raise a PR. Merge it. Cross fingers.
+The HTML provided by default is a basic MoJ Forms branded page. Customise it how you see fit. Raise a PR. Merge it. Cross fingers.
 
 ## Enabling and Disabling namespace level maintenance page
 
