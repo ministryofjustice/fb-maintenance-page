@@ -1,56 +1,110 @@
-version: 2
+version: 2.1
+orbs:
+  slack: circleci/slack@3.4.2
+
 jobs:
-  build:
-    working_directory: /app
-    docker:
-    - image: docker:17.05.0-ce-git
-      environment:
-        APP_NAME: cloud-platform-maintenance-page
+  build_and_push_image:
+    docker: &ecr_base_image
+      - image: $AWS_BUILD_IMAGE_ECR_ACCOUNT_URL
+        aws_auth:
+          aws_access_key_id: $AWS_BUILD_IMAGE_ACCESS_KEY_ID
+          aws_secret_access_key: $AWS_BUILD_IMAGE_SECRET_ACCESS_KEY
+    working_directory: ~/circle/git/fb-maintenance-page
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker: &remote_docker
+          docker_layer_caching: true
       - run:
-          name: Install dependencies
-          command: |
-            apk add --no-cache \
-              py-pip=9.0.0-r1
-            pip install \
-              docker-compose==1.12.0 \
-              awscli==1.16
-      - restore_cache:
-          keys:
-            - v1-{{ .Branch }}
-          paths:
-            - /caches/app.tar
+          name: build and push docker images
+          environment:
+            ENVIRONMENT_NAME: test
+          command: './deploy_scripts/build'
+      - slack/status: &slack_status
+          fail_only: true
+          only_for_branches: main
+          failure_message: ":facepalm:  Failed job $CIRCLE_JOB  :homer-disappear:"
+          include_job_number_field: false
+  deploy_to_services_test_dev:
+    working_directory: ~/circle/git/fb-maintenance-page
+    docker: *ecr_base_image
+    steps:
+      - checkout
+      - setup_remote_docker: *remote_docker
       - run:
-          name: Load Docker image layer cache
-          command: |
-            set +o pipefail
-            docker load -i /caches/app.tar | true
+          name: deploy to test dev in EKS cluster
+          environment:
+            APPLICATION_NAME: fb-maintenance-page
+            PLATFORM_ENV: test
+            DEPLOYMENT_ENV: dev
+            K8S_NAMESPACE: formbuilder-services-test-dev
+          command: './deploy_scripts/deploy_eks'
+      - slack/status: *slack_status
+  deploy_to_services_test_production:
+    working_directory: ~/circle/git/fb-maintenance-page
+    docker: *ecr_base_image
+    steps:
+      - checkout
+      - setup_remote_docker: *remote_docker
       - run:
-          name: Build application Docker image
-          command: |
-            docker build --cache-from=app -t app .
+          name: deploy to test production in EKS cluster
+          environment:
+            APPLICATION_NAME: fb-maintenance-page
+            PLATFORM_ENV: test
+            DEPLOYMENT_ENV: production
+            K8S_NAMESPACE: formbuilder-services-test-production
+          command: './deploy_scripts/deploy_eks'
+      - slack/status: *slack_status
+  deploy_to_services_live_dev:
+    working_directory: ~/circle/git/fb-maintenance-page
+    docker: *ecr_base_image
+    steps:
+      - checkout
+      - setup_remote_docker: *remote_docker
       - run:
-          name: Save Docker image layer cache
-          command: |
-            mkdir -p /caches
-            docker save -o /caches/app.tar app
-      - save_cache:
-          key: v1-{{ .Branch }}-{{ epoch }}
-          paths:
-            - /caches/app.tar
-      - deploy:
-          name: Push application Docker image
-          command: |
-            login="$(aws ecr get-login --no-include-email)"
-            ${login}
+          name: deploy to live dev (eks)
+          environment:
+            APPLICATION_NAME: fb-maintenance-page
+            PLATFORM_ENV: live
+            DEPLOYMENT_ENV: dev
+            K8S_NAMESPACE: formbuilder-services-live-dev
+          command: './deploy_scripts/deploy_eks'
+      - slack/status: *slack_status
+  deploy_to_services_live_production:
+    working_directory: ~/circle/git/fb-maintenance-page
+    docker: *ecr_base_image
+    steps:
+      - checkout
+      - setup_remote_docker: *remote_docker
+      - run:
+          name: deploy to live production (eks)
+          environment:
+            APPLICATION_NAME: fb-maintenance-page
+            PLATFORM_ENV: live
+            DEPLOYMENT_ENV: production
+            K8S_NAMESPACE: formbuilder-services-live-production
+          command: './deploy_scripts/deploy_eks'
+      - slack/status: *slack_status
 
-            docker tag app "${ECR_ENDPOINT}/${APP_NAME}:${CIRCLE_SHA1}"
-            docker push "${ECR_ENDPOINT}/${APP_NAME}:${CIRCLE_SHA1}"
-
-            if [ "${CIRCLE_BRANCH}" == "master" ]; then
-              docker tag app "${ECR_ENDPOINT}/${APP_NAME}:latest"
-              docker push "${ECR_ENDPOINT}/${APP_NAME}:latest"
-            fi
-            
+workflows:
+  version: 2
+  build_and_deploy:
+    jobs:
+      - build_and_push_image:
+          filters:
+            branches:
+              only:
+                - main
+      - deploy_to_services_test_dev:
+          requires:
+            - build_and_push_image
+      - deploy_to_services_test_production:
+          requires:
+            - build_and_push_image
+      - deploy_to_services_live_dev:
+          requires:
+            - deploy_to_services_test_dev
+            - deploy_to_services_test_production
+      - deploy_to_services_live_production:
+          requires:
+            - deploy_to_services_test_dev
+            - deploy_to_services_test_production
