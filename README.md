@@ -27,7 +27,7 @@ It is important to check whether the template used as the basis for the ingress 
 To enable or disable the maintance page in a given namespace:
 
 ```
-./bin/maintenance_mode <action> <mamespace> <hostname_postfix>
+./bin/maintenance_mode <action> <namespace>
 ```
 
 `action` is one of:
@@ -41,10 +41,3 @@ To enable or disable the maintance page in a given namespace:
 - formbuilder-services-test-production
 - formbuilder-services-live-dev
 - formbuilder-services-live-production
-
-`hostname_postfix` is one of:
-
-- `dev.test.form.service.justice.gov.uk` if the namespace is `formbuilder-services-test-dev`
-- `test.form.service.justice.gov.uk` if the namespace is `formbuilder-services-test-production`
-- `form.service.justice.gov.uk` if the namespace is `formbuilder-services-live-dev`
-- `form.service.justice.gov.uk` if the namespace is `formbuilder-services-live-production`

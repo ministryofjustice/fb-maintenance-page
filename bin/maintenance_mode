@@ -3,7 +3,6 @@ set -e -o pipefail
 
 action=$1
 namespace=$2
-hostname_postfix=$3
 
 if [[ ${namespace} != *formbuilder-services* ]]; then
   echo '*************************************************'
@@ -32,9 +31,17 @@ if [[ ! ${action} =~ (enable|disable) ]]; then
   exit 1
 fi
 
-if [[ -z "${hostname_postfix}" ]]; then
+if [[ ${namespace} == 'formbuilder-services-test-dev' ]]; then
+  hostname_postfix='dev.test.form.service.justice.gov.uk'
+elif [[ ${namespace} == 'formbuilder-services-test-production' ]]; then
+  hostname_postfix='test.form.service.justice.gov.uk'
+elif [[ ${namespace} == 'formbuilder-services-live-dev' ]]; then
+  hostname_postfix='dev.form.service.justice.gov.uk'
+elif [[ ${namespace} == 'formbuilder-services-live-production' ]]; then
+  hostname_postfix='form.service.justice.gov.uk'
+else
   echo '*************************************************'
-  echo 'Hostname Postfix must be provided. Check the README'
+  echo 'Invalid namespace provided. Check the README'
   echo '*************************************************'
   echo
   exit 1
