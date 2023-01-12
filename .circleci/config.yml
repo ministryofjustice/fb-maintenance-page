@@ -90,21 +90,28 @@ workflows:
   build_and_deploy:
     jobs:
       - build_and_push_image:
+          context: &context
+            - moj-forms
+            - moj-forms-services-apps
           filters:
             branches:
               only:
                 - main
       - deploy_to_services_test_dev:
+          context: *context
           requires:
             - build_and_push_image
       - deploy_to_services_test_production:
+          context: *context
           requires:
             - build_and_push_image
       - deploy_to_services_live_dev:
+          context: *context
           requires:
             - deploy_to_services_test_dev
             - deploy_to_services_test_production
       - deploy_to_services_live_production:
+          context: *context
           requires:
             - deploy_to_services_test_dev
             - deploy_to_services_test_production
