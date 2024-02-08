@@ -5,10 +5,10 @@ orbs:
 jobs:
   build_and_push_image:
     docker: &ecr_base_image
-      - image: $AWS_BUILD_IMAGE_ECR_ACCOUNT_URL
-        aws_auth:
-          aws_access_key_id: $AWS_BUILD_IMAGE_ACCESS_KEY_ID
-          aws_secret_access_key: $AWS_BUILD_IMAGE_SECRET_ACCESS_KEY
+      - image: docker.io/ministryofjustice/fb-builder:latest
+        auth:
+          username: $DOCKER_LOGIN
+          password: $DOCKER_PASSWORD
     working_directory: ~/circle/git/fb-maintenance-page
     steps:
       - checkout
