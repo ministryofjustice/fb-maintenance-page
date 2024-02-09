@@ -108,6 +108,7 @@ workflows:
             - moj-forms
             - moj-forms-services-apps
       - build_and_push_image:
+          context: *context
           filters:
             branches:
               only:
