@@ -17,6 +17,12 @@ jobs:
           command: |
             aws ecr get-login-password --region $ECR_REGION | docker login --username AWS --password-stdin ${AWS_ECR_REGISTRY_ID}.dkr.ecr.${ECR_REGION}.amazonaws.com
             aws configure export-credentials --format env
+      - run: |
+          cp $BASH_ENV bash.env
+      - persist_to_workspace:
+          root: .
+          paths:
+            - bash.env
   build_and_push_image:
     docker: &ecr_base_image
       - image: docker.io/ministryofjustice/fb-builder:latest
@@ -26,6 +32,11 @@ jobs:
     working_directory: ~/circle/git/fb-maintenance-page
     steps:
       - checkout
+      - attach_workspace:
+          at: .
+      - run: &workspace_envs
+          command: |
+            cat bash.env >> $BASH_ENV
       - setup_remote_docker: &remote_docker
           docker_layer_caching: true
       - run:
