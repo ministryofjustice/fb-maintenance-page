@@ -32,24 +32,11 @@ echo
 set_context "circleci" "${k8s_namespace}" "${k8s_token}" "${cluster_cert}" "${cluster_name}"
 
 echo "*******************************************************************"
-echo "Getting ECR credentials"
-ecr_username=$(kubectl get secrets -n formbuilder-repos ecr-credentials -o jsonpath="{.data.ecr_username}" | base64 -d)
-ecr_password=$(kubectl get secrets -n formbuilder-repos ecr-credentials -o jsonpath="{.data.ecr_password}" | base64 -d)
-echo "*******************************************************************"
-echo
-
-echo "*******************************************************************"
-echo "Getting secrets from AWS"
-export AWS_DEFAULT_REGION=eu-west-2
-export AWS_ACCESS_KEY_ID=$(kubectl get secrets -n formbuilder-repos ecr-repo-fb-maintenance-page -o jsonpath='{.data.access_key_id}' | base64 -d)
-export AWS_SECRET_ACCESS_KEY=$(kubectl get secrets -n formbuilder-repos ecr-repo-fb-maintenance-page -o jsonpath='{.data.secret_access_key}' | base64 -d)
-export ECR_REPO_URL=$(kubectl get secrets -n formbuilder-repos ecr-repo-fb-maintenance-page -o jsonpath='{.data.repo_url}' | base64 -d)
-echo "*******************************************************************"
-echo
-
-echo "*******************************************************************"
 echo 'Logging into AWS ECR'
-aws ecr get-login-password --region eu-west-2 | docker login --username ${ecr_username} --password-stdin ${ecr_password}
+export AWS_DEFAULT_REGION=$ECR_REGION
+aws ecr get-login-password --region $ECR_REGION | docker login --username AWS --password-stdin ${AWS_ECR_REGISTRY_ID}.dkr.ecr.${ECR_REGION}.amazonaws.com
+
+export ECR_REPO_URL=${AWS_ECR_REGISTRY_ID}.dkr.ecr.${ECR_REGION}.amazonaws.com/${ECR_REPOSITORY}
 echo "*******************************************************************"
 echo
 
