@@ -109,6 +109,8 @@ workflows:
             - moj-forms-services-apps
       - build_and_push_image:
           context: *context
+          requires:
+            - login_to_aws
           filters:
             branches:
               only:
