@@ -41,3 +41,29 @@ To enable or disable the maintance page in a given namespace:
 - formbuilder-services-test-production
 - formbuilder-services-live-dev
 - formbuilder-services-live-production
+
+## Enabling and Disabling individual service maintenance page
+
+It is important to check whether the template used as the basis for the ingress configuration has not changed. It can be found [in the editor](https://github.com/ministryofjustice/fb-editor/blob/main/config/publisher/cloud_platform/ingress.yaml.erb).
+
+To enable or disable the maintance page in a given namespace:
+
+```
+./bin/single_service_maintenance_mode <action> <namespace> <service_ingress>
+```
+
+`action` is one of:
+
+- enable
+- disable
+
+`namespace` is one of:
+
+- formbuilder-services-test-dev
+- formbuilder-services-test-production
+- formbuilder-services-live-dev
+- formbuilder-services-live-production
+
+`service_ingress` is an exact single match to an ingress in the namespace. 
+
+This script will then enable or disable maintenace mode for just that ingress.
