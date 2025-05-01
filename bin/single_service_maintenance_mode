@@ -33,7 +33,18 @@ if [[ ! ${action} =~ (enable|disable) ]]; then
 fi
 
 # get just matches for provided service name
-ingresslist=$(kubectl get ingress -n formbuilder-services-test-dev | grep -o -w ${service})
+ingresslist=$(kubectl get ingress -n ${namespace} | grep -o -w ${service})
+
+
+echo '*************************************************'
+echo "Action: ${action}"
+echo
+echo "Namespace: ${namespace}"
+echo
+echo "Hostname postfix: ${hostname_postfix}"
+echo '*************************************************'
+echo
+
 
 if [[ ! ${service} == ${ingresslist} ]]; then
   echo '*************************************************'
@@ -106,7 +117,7 @@ for line in ${ingresses}; do
 
       namespace_directory="./tmp/${namespace}"
       if [ ! -d "${namespace_directory}" ]; then
-        mkdir "${namespace_directory}"
+        mkdir -p "${namespace_directory}"
       fi
 
       filepath="${namespace_directory}/${ingress}.yaml"
